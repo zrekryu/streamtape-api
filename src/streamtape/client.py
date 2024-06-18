@@ -4,22 +4,25 @@ import hashlib
 
 import httpx
 
-from .exceptions import StreamTapeError
+from .exceptions import StreamtapeError
 
-class StreamTape:
+class StreamtapeAPI:
     """
-    API Class.
+    Interacts with the Streamtape's API.
     """
     
     BASE_URL: str = "https://api.streamtape.com"
+    TIMEOUT: int = 30
+    DATETIME_FORMAT: str = "%Y-%m-%d %H:%M:%S"
+    CHUNK_SIZE: int = 4096
     
     def __init__(
         self: "StreamTape",
         login: Optional[str] = None,
         key: Optional[str] = None,
-        timeout: Optional[int] = 30,
-        datetime_format: Optional[str] = "%Y-%m-%d %H:%M:%S",
-        chunk_size: Optional[int] = 4096
+        timeout: int = TIMEOUT,
+        datetime_format: str = DATETIME_FORMAT,
+        chunk_size: int = CHUNK_SIZE
         ) -> None:
         self.base_url = self.BASE_URL
         
@@ -54,7 +57,7 @@ class StreamTape:
         response_dict: Dict[str, Any] = response.json()
         status: int = response_dict["status"]
         if not 200 <= status < 300:
-            raise StreamTapeError(status, response_dict["msg"])
+            raise StreamtapeError(status, response_dict["msg"])
         
         return response_dict["result"]
     
@@ -77,8 +80,12 @@ class StreamTape:
         """
         Get information about the account (total used storage, reward, etc.)
         
+        Parameters:
+            login (str, optional): API-login.
+            key (str, optional): API-key.
+        
         Raises:
-            StreamTapeError: If anything is wrong with the request.
+            StreamtapeError: If anything is wrong with the request.
         Returns:
             Dict[str, Any]: result of the request.
         """
@@ -90,7 +97,7 @@ class StreamTape:
         }
         
         result: Dict[str, Any] = await self._request(method, endpoint=endpoint, params=params)
-        result["apiid"] = result.pop("apiid")
+        result["api_id"] = result.pop("apiid")
         result["signup_at"] = self._str_to_datetime(result["signup_at"])
         
         return result
@@ -99,8 +106,13 @@ class StreamTape:
         """
         Prepare a download ticket.
         
+        Parameters:
+            file (str): The File-ID of the file.
+            login (str, optional): API login. Defaults to None.
+            key (str, optional): API key. Defaults to None.
+        
         Raises:
-            StreamTapeError: If anything is wrong with the request.
+            StreamtapeError: If anything is wrong with the request.
         Returns:
             Dict[str, Any]: result of the request.
         """
@@ -119,8 +131,12 @@ class StreamTape:
         """
         Get a download link by using download ticket.
         
+        Parameters:
+            file (str): The File-ID of the file.
+            ticket (str): Previously generated download ticket.
+        
         Raises:
-            StreamTapeError: If anything is wrong with the request.
+            StreamtapeError: If anything is wrong with the request.
         Returns:
             Dict[str, Any]: result of the request.
         """
@@ -138,8 +154,13 @@ class StreamTape:
         """
         Get the status of a file, e.g. if the file exists.
         
+        Parameters:
+            file (str): The File-ID of the file.
+            login (str, optional): API login. Defaults to None.
+            key (str, optional): API key. Defaults to None.
+        
         Raises:
-            StreamTapeError: If anything is wrong with the request.
+            StreamtapeError: If anything is wrong with the request.
         Returns:
             Dict[str, Any]: result of the request.
         """
@@ -165,8 +186,15 @@ class StreamTape:
         """
         Upload a file.
         
+        Parameters:
+            file_path (str): The path of the file to upload.
+            folder (str): The Folder-ID to upload to. Defaults to None.
+            httponly (bool, optional): If true, use only HTTP upload link. Defaults to None.
+            login (str, optional): API login. Defaults to None.
+            key (str, optional): API key. Defaults to None.
+        
         Raises:
-            StreamTapeError: If anything is wrong with the request.
+            StreamtapeError: If anything is wrong with the request.
         Returns:
             Dict[str, Any]: result of the request.
         """
@@ -194,8 +222,16 @@ class StreamTape:
         """
         Remote Upload a file.
         
+        Parameters:
+            url (str): The remote url.
+            folder (str): The Folder-ID to upload to. Defaults to None.
+            headers (bool, optional): Additional headers for the HTTP request. Defaults to None.
+            name (str, optional): Custom name for the file. Defaults to None.
+            login (str, optional): API login. Defaults to None.
+            key (str, optional): API key. Defaults to None.
+        
         Raises:
-            StreamTapeError: If anything is wrong with the request.
+            StreamtapeError: If anything is wrong with the request.
         Returns:
             Dict[str, Any]: result of the request.
         """
@@ -217,8 +253,13 @@ class StreamTape:
         """
         Removing/Cancelling a remote upload.
         
+        Parameters:
+            upload_id (str): The Remote Upload-ID to remove (use "all" to remove all remote uploads).
+            login (str, optional): API login. Defaults to None.
+            key (str, optional): API key. Defaults to None.
+        
         Raises:
-            StreamTapeError: If anything is wrong with the request.
+            StreamtapeError: If anything is wrong with the request.
         Returns:
             Dict[str, Any]: result of the request.
         """
@@ -237,8 +278,13 @@ class StreamTape:
         """
         Get the status of a Remote Upload.
         
+        Parameters:
+            upload_id (str): The Remote Upload-ID.
+            login (str, optional): API login. Defaults to None.
+            key (str, optional): API key. Defaults to None.
+        
         Raises:
-            StreamTapeError: If anything is wrong with the request.
+            StreamtapeError: If anything is wrong with the request.
         Returns:
             Dict[str, Any]: result of the request.
         """
@@ -255,12 +301,17 @@ class StreamTape:
         result["last_update"] = self._str_to_datetime(result["last_update"])
         return result
     
-    async def get_files_and_folders(self: "StreamTape", folder: Optional[str], login: Optional[str] = None, key: Optional[str] = None) -> Dict[str, Any]:
+    async def get_files_and_folders(self: "StreamTape", folder: Optional[str] = None, login: Optional[str] = None, key: Optional[str] = None) -> Dict[str, Any]:
         """
         Get the content of your folders.
         
+        Parameters:
+            folder (str, optional): The Folder-ID. Defaults to None.
+            login (str, optional): API login. Defaults to None.
+            key (str, optional): API key. Defaults to None.
+        
         Raises:
-            StreamTapeError: If anything is wrong with the request.
+            StreamtapeError: If anything is wrong with the request.
         Returns:
             Dict[str, Any]: result of the request.
         """
@@ -279,8 +330,14 @@ class StreamTape:
         """
         Create a new folder.
         
+        Parameters:
+            name (str, optional): The name of the folder.
+            parent_folder (str, optional): The Folder-ID of the parent folder. Defaults to None.
+            login (str, optional): API login. Defaults to None.
+            key (str, optional): API key. Defaults to None.
+        
         Raises:
-            StreamTapeError: If anything is wrong with the request.
+            StreamtapeError: If anything is wrong with the request.
         Returns:
             Dict[str, Any]: result of the request.
         """
@@ -300,8 +357,14 @@ class StreamTape:
         """
         Rename a folder.
         
+        Parameters:
+            folder (str): The Folder-ID of folder to rename.
+            name (str): The new name for the folder.
+            login (str, optional): API login. Defaults to None.
+            key (str, optional): API key. Defaults to None.
+        
         Raises:
-            StreamTapeError: If anything is wrong with the request.
+            StreamtapeError: If anything is wrong with the request.
         Returns:
             bool: True if the folder was successfully renamed, False otherwise.
         """
@@ -321,8 +384,13 @@ class StreamTape:
         """
         Delete a folder along with all its subfolders and files.
         
+        Parameters:
+            folder (str): The Folder-ID of folder to delete.
+            login (str, optional): API login. Defaults to None.
+            key (str, optional): API key. Defaults to None.
+        
         Raises:
-            StreamTapeError: If anything is wrong with the request.
+            StreamtapeError: If anything is wrong with the request.
         Results:
             bool: True if the folder was successfully renamed, False otherwise.
         """
@@ -341,8 +409,13 @@ class StreamTape:
         """
         Rename a file.
         
+        Parameters:
+            file (str): The File-ID of file to rename.
+            login (str, optional): API login. Defaults to None.
+            key (str, optional): API key. Defaults to None.
+        
         Raises:
-            StreamTapeError: If anything is wrong with the request.
+            StreamtapeError: If anything is wrong with the request.
         Returns:
             bool: True if the folder was successfully renamed, False otherwise.
         """
@@ -362,8 +435,14 @@ class StreamTape:
         """
         Move a file.
         
+        Parameters:
+            file (str): The File-ID of file to move to.
+            folder (str): The Folder-ID of folder to move the file to.
+            login (str, optional): API login. Defaults to None.
+            key (str, optional): API key. Defaults to None.
+        
         Raises:
-            StreamTapeError: If anything is wrong with the request.
+            StreamtapeError: If anything is wrong with the request.
         Returns:
             bool: True if the folder was successfully renamed, False otherwise.
         """
@@ -383,8 +462,13 @@ class StreamTape:
         """
         Delete a file.
         
+        Parameters:
+            file (str): The File-ID of file to delete.
+            login (str, optional): API login. Defaults to None.
+            key (str, optional): API key. Defaults to None.
+        
         Raises:
-            StreamTapeError: If anything is wrong with the request.
+            StreamtapeError: If anything is wrong with the request.
         Returns:
             bool: True if the folder was successfully renamed, False otherwise.
         """
@@ -403,8 +487,12 @@ class StreamTape:
         """
         Get the list of all running conversions with their details.
         
+        Parameters:
+            login (str, optional): API login. Defaults to None.
+            key (str, optional): API key. Defaults to None.
+        
         Raises:
-            StreamTapeError: If anything is wrong with the request.
+            StreamtapeError: If anything is wrong with the request.
         Returns:
             Dict[str, Any]: result of the request.
         """
@@ -422,8 +510,12 @@ class StreamTape:
         """
         Get a list of all failed conversions.
         
+        Parameters:
+            login (str, optional): API login. Defaults to None.
+            key (str, optional): API key. Defaults to None.
+        
         Raises:
-            StreamTapeError: If anything is wrong with the request.
+            StreamtapeError: If anything is wrong with the request.
         Returns:
             Dict[str, Any]: result of the request.
         """
@@ -441,10 +533,15 @@ class StreamTape:
         """
         Get the thumbnail of a file.
         
+        Parameters:
+            file (str): The File-ID of file.
+            login (str, optional): API login. Defaults to None.
+            key (str, optional): API key. Defaults to None.
+        
         Raises:
-            StreamTapeError: If anything is wrong with the request.
+            StreamtapeError: If anything is wrong with the request.
         Returns:
-            Dict[str, Any]: result of the request.
+            str: The URL of the thumbnail of the file.
         """
         method: str = "GET"
         endpoint: str = "/file/getsplash"

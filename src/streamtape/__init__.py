@@ -1,1 +1,1 @@
-from .client import StreamTape
+from .client import StreamtapeClient
